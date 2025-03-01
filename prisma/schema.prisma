@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String            @id @default(uuid())
+  name              String
+  email             String            @unique
+  passwordHash      String
+  address           String
+  phone             String            @unique
+  role              Role              @default(CUSTOMER)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  orders            Order[]
+  cart              Cart?
+  shippingAddresses ShippingAddress[]
+  reviews           ProductReview[]
+  AccessLog         AccessLog[]
+}
+
+model Product {
+  id           String          @id @default(uuid())
+  name         String
+  description  String
+  price        Float
+  stock        Int
+  categoryId   String // Alterado para String para corresponder ao tipo de `id` em Category
+  category     Category        @relation(fields: [categoryId], references: [id])
+  createdAt    DateTime        @default(now())
+  image        String
+  orderItems   OrderItem[]
+  reviews      ProductReview[]
+  priceHistory PriceHistory[]
+  CartItem     CartItem[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Order {
+  id                String          @id @default(uuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  createdAt         DateTime        @default(now())
+  total             Float
+  status            OrderStatus     @default(PENDING)
+  orderItems        OrderItem[]
+  payment           Payment?
+  shippingAddress   ShippingAddress @relation("OrderShippingAddress", fields: [shippingAddressId], references: [id])
+  shippingAddressId String
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Float
+  total     Float
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  orderId       String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  amountPaid    Float
+  paymentDate   DateTime      @default(now())
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  createdAt DateTime   @default(now())
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+}
+
+model ShippingAddress {
+  id           String  @id @default(uuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id])
+  address      String
+  neighborhood String
+  city         String
+  zipCode      String
+  state        String
+  country      String
+  orders       Order[] @relation("OrderShippingAddress")
+}
+
+model Discount {
+  id                 String   @id @default(uuid())
+  code               String   @unique
+  discountPercentage Float
+  validUntil         DateTime
+  maxUsage           Int
+}
+
+model ProductReview {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int // 1-5 stars
+  comment   String
+  createdAt DateTime @default(now())
+}
+
+model PriceHistory {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  oldPrice  Float
+  newPrice  Float
+  changedAt DateTime @default(now())
+}
+
+model AccessLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  accessTime DateTime @default(now())
+  ip         String
+  action     String
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PAYPAL
+  BOLETO
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
