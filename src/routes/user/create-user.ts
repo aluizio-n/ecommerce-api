@@ -4,7 +4,7 @@ import { prisma } from '../../lib/prisma'
 import { hashPassword } from '../../lib/hashPassword'
 
 export async function createUser(app: FastifyInstance) {
-  app.post('/register', async (request, reply) => {
+  app.post('/register_user', async (request, reply) => {
     const createUserBody = z.object({
       name: z.string(),
       email: z.string(),
